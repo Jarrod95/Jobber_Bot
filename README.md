@@ -8,4 +8,4 @@ For the foreseeable future, a Python program to automate this data entry process
 It currently takes up to 15 minutes, and sometimes longer, to input all the data contained in our Service Request documents into our CRM Jobber. Jobber currently does not have an API, hence the need to use Selenium. 
 
 Below is the taks required for the program to reduce our current workload:
-![Service Request Data Entry automation Program](https://i.imgur.com/a/dxWDPLe.jpg)
+![Service Request Data Entry automation Program](https://github.com/Jarrod95/Jobber_Bot/blob/master/AutoSR.png)
