@@ -17,7 +17,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from secrets import jobber_us, jobber_pw, onedrive_us, onedrive_pw
 
 start = time.perf_counter()
-os.chdir('SET FOLDER PATH TO READ FROM')
+os.chdir('C:\\Users\\info\\OneDrive\\1. M2M Administration\\AGED CARE\\Jobber Bot')
 
 #DOB Calculation (to be used in data extraction 
 def calculate_age(born):
@@ -32,8 +32,8 @@ class DataExtraction():
         #.PDF versions of the document
         list_of_files = glob.glob(os.getcwd() + '\\*')
         #Ignore debug.log file
-        list_of_files.remove('PATH\\debug.log')
-        list_of_files.remove('PATH\\Jobber-Client.xlsx')
+        list_of_files.remove('C:\\Users\\info\\OneDrive\\1. M2M Administration\\AGED CARE\\Jobber Bot\\debug.log')
+        list_of_files.remove('C:\\Users\\info\\OneDrive\\1. M2M Administration\\AGED CARE\\Jobber Bot\\Jobber-Client.xlsx')
         last_file = max(list_of_files, key=os.path.getctime)
         #Just get the file name
         latest_file = last_file.split('\\')[-1]
@@ -102,11 +102,14 @@ class DataExtraction():
                 radio[0] = 'NOK'
                 notes.append(f'Please Contact {radio[0]}')
                 prim_contact = radio[0]
-            if len(radio) >= 2:
-                if radio[1] == 'I':
-                    freq = radio[1] + '(' + radio[2] + ')'
-                else:
-                    freq = radio[-1]
+            else:
+                prim_contact = ''
+            if len(radio) >= 3:
+                freq = radio[1] + '(' + radio[2] + ')'
+            elif len(radio) >= 2:
+                freq = radio[-1]
+            else:
+                freq = 'Blank'
             freq = str(freq).strip("[|]|''|''")
             #Remove item from headings if not in the document
             # Get Address as BEST AS POSSIBLE
@@ -144,7 +147,9 @@ class DataExtraction():
             email = info[16]
             # Get client details
             name = info[19].split(' ')
-            name_fn = str(name[:-1]).strip("[|''|''|]")
+            if '' in name:
+                name.remove('')
+            name_fn = ' '.join(name[:-1])
             name_ln = name[-1]
             number = info[26]
             nok = info[33]
@@ -157,7 +162,7 @@ class DataExtraction():
             reason = info[54]
             freq = str(freq).strip("[|]|''|''")
             # Use function to get Age
-            date_of_birth = datetime.strptime(dob, "%d/%m/%Y")
+            date_of_birth = datetime.strptime(dob.strip(), "%d/%m/%Y")
             #Add start date to notes
             if start != 'Blank':
                 notes.append(f'Please begin services on/after {start}')
@@ -246,7 +251,7 @@ class DataExtraction():
         ## SEARCH BILLING INFORMATION SPREADSHEET
         ## WORK OUT HOW TO CHECK IF THE CLIENT IS NOT IN SPREADSHEET AT ALL
         global billing, res1
-        df = pd.read_excel('PATH\\Accounts_Contacts.xlsx')
+        df = pd.read_excel('C:\\Users\\info\\OneDrive\\1. M2M Administration\\PROPOSALS\\Jarrods Folder\\Automation\\Accounts_Contacts.xlsx')
         res1 = df[df['Company'].str.contains(provider, na=False)]
         billing = []
         if len(res1.index) > 1:
@@ -257,7 +262,7 @@ class DataExtraction():
 class FileManip():
     def FileMove(self):
         global new_folder
-        new_folder = 'PATH\\AGED CARE\\AGED CARE CLIENT PROVIDERS\\'+ \
+        new_folder = 'C:\\Users\\info\\OneDrive\\1. M2M Administration\\AGED CARE\\AGED CARE CLIENT PROVIDERS\\'+ \
           state + '\\' + provider + '\\' + name_fn + ' ' + name_ln
         Path(new_folder).mkdir(parents=True, exist_ok=True)
         #Rename file and move to directory under the right name
@@ -268,7 +273,7 @@ class FileManip():
         global details, sheet, wb
         ##Write name to cells -- 
         ## CHECK IF ENTRY IS DUPLICATED -- DO NOT LET DUPLICATED DATA PASS ON TO .XLSX FILE AND CRM
-        wb = openpyxl.load_workbook('PATH\\AGED CARE\\Jobber Bot\\Jobber-Client.xlsx')
+        wb = openpyxl.load_workbook('C:\\Users\\info\\OneDrive\\1. M2M Administration\\AGED CARE\\Jobber Bot\\Jobber-Client.xlsx')
         sheet = wb['Imports']
         ## For Loop to insert new data below existing data
         details = [[datetime.now().strftime("%d/%m/%Y %H:%M:%S"), name_fn, name_ln, provider, number,\
@@ -277,7 +282,7 @@ class FileManip():
                     billing['Billing City'].values[0], billing['Billing State'].values[0], str(billing['Postcode'].values[0])]]
         for detail in details:
             sheet.append(detail)
-        wb.save('PATH\\AGED CARE\\Jobber Bot\\Jobber-Client.xlsx')
+        wb.save('C:\\Users\\info\\OneDrive\\1. M2M Administration\\AGED CARE\\Jobber Bot\\Jobber-Client.xlsx')
         print('Data written to Jobber-client.xlsx')
 
 class JobberBot():
@@ -325,6 +330,7 @@ class JobberBot():
         #Postcode
         self.driver.find_element_by_xpath('//*[@id="new_client"]/div/div/div/div[1]/div[2]/div[3]/div[2]/div/div[1]/div/div[4]/div[1]/placeholder-field/input').send_keys(postcode)
         #Contact details
+        #driver.find_element_by_xpath('//*[@id="client_phones_attributes_1587200583889_number"]').sendkeys('9844 3360')
         #Case Manager
         self.driver.find_element_by_xpath('/html/body/div[2]/div[2]/div[2]/div[1]/div[2]/div/form/div/div/div/div[1]/div[1]/sg-accordion/sg-accordion-section[2]/sg-accordion-section-body/div[1]/placeholder-field[1]/input').send_keys(manager)
         #Case Manager Contact
@@ -359,19 +365,22 @@ class JobberBot():
         select_fr = Select(self.driver.find_element_by_xpath('/html/body/div[2]/div[2]/div[2]/div[1]/div[2]/div/form/div/div/div/div[1]/div[2]/div[4]/div/div[2]/div/div[4]/div[2]/div/select'))
         select_fr.select_by_index(0)
         # CREATE CLIENT
-        self.driver.find_element_by_xpath('/html/body/div[2]/div[2]/div[2]/div[1]/div[2]/div/form/div/div/div/div[2]/div[2]/button').click()
+        self.driver.find_element_by_xpath('/html/body/div[2]/div[2]/div[2]/div[1]/div[2]/div/form/div/div/div/div[2]/div[2]/div/button[1]').click()
         print('Successfully created client ' + str(name_fn) + str(name_ln) + 'in Jobber')
         time.sleep(2)
 
         ### Need to get past possible 'duplicate' pop up:
-        self.driver.find_element_by_xpath('/html/body/div[2]/div[2]/div[2]/div[3]/div/div[2]/div/div[2]/form/input[96]').click()
-        time.sleep(2)
+        self.driver.find_element_by_name('commit').click()
+        time.sleep(2.5)
         ## Add AgedCare Tag
         self.driver.find_element_by_xpath('/html/body/div[2]/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div[1]/div[2]/a').click()
         time.sleep(1.5)
         self.driver.find_element_by_xpath('/html/body/div[2]/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div[2]/form/div/div[1]/placeholder-field/input').send_keys('AgedCare')
         self.driver.find_element_by_xpath('/html/body/div[2]/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div[2]/form/div/div[2]/a').click()
-        print('Added AgedCare Tag')
+        time.sleep(1)
+        self.driver.find_element_by_xpath('/html/body/div[2]/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div[2]/form/div/div[1]/placeholder-field/input').send_keys('New')
+        self.driver.find_element_by_xpath('/html/body/div[2]/div[2]/div[2]/div[1]/div[2]/div/div[2]/div[2]/div[2]/form/div/div[2]/a').click()
+        print('Added AgedCare & New Tags')
         time.sleep(1)
         ## CREATE JOB
         #Open Dropdown
@@ -399,11 +408,11 @@ class ConfEmail():
 
         smtp = SMTP()
         smtp.set_debuglevel(debuglevel)
-        smtp.connect('SERVER', 587)
-        smtp.login('EMAIL', 'PASSWORD')
+        smtp.connect('', )
+        smtp.login('', '')
 
-        from_addr = "Automated Bot <donotreply@...>"
-        to_addr = "TO ADDRESS"
+        from_addr = "Automated Bot <>"
+        to_addr = ""
 
         subj = F'SYNC COMPLETED FOR {name_fn} {name_ln}'
         date = datetime.now().strftime( "%d/%m/%Y %H:%M" )
@@ -429,11 +438,11 @@ class ConfEmail():
 
         smtp = SMTP()
         smtp.set_debuglevel(debuglevel)
-        smtp.connect('SERVER', 587)
-        smtp.login('EMAIL', 'PASSWORD')
+        smtp.connect('', )
+        smtp.login('', '')
 
-        from_addr = "Automated Bot <donotreply@...>"
-        to_addr = "TO ADDRESS"
+        from_addr = "Automated Bot <>"
+        to_addr = "u"
 
         subj = F'ERROR COMPLETING SYNC FOR {name_fn} {name_ln}'
         date = datetime.now().strftime( "%d/%m/%Y %H:%M" )
@@ -459,11 +468,11 @@ class ConfEmail():
 
         smtp = SMTP()
         smtp.set_debuglevel(debuglevel)
-        smtp.connect('SERVER', 587)
-        smtp.login('EMAIL', 'PASSWORD')
+        smtp.connect('', )
+        smtp.login('', '')
 
-        from_addr = "Automated Bot <donotreply@...>"
-        to_addr = "TO ADDRESS"
+        from_addr = "Automated Bot <>"
+        to_addr = ""
 
         subj = F'ERROR PARSING {latest_file}'
         date = datetime.now().strftime( "%d/%m/%Y %H:%M" )
@@ -518,7 +527,7 @@ if '.pdf' in latest_file:
     except Exception as error:
         Conf.ErrorEmail()
         os._exit(0)
-    ## Start Bot
+    # Start Bot
     try:
         bot = JobberBot()
         bot.login()
@@ -578,7 +587,7 @@ elif '.docx' in latest_file:
         except Exception as error:
             Conf.ErrorEmail()
             os._exit(0)
-    ##    # If Program makes it to here: success email will be sent!!
+       # If Program makes it to here: success email will be sent!!
         try:
             Conf.SuccessEmail()
         except Exception as error:
